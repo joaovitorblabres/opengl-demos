@@ -155,7 +155,7 @@ int main(int argc, char** argv)
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
 	glutInitWindowSize(WIDTH, HEIGHT);
 	glutCreateWindow("Transformation - Simple");
-	
+
 	// Register a few callback functions
 	glutDisplayFunc(internalDisplay);
 	glutKeyboardFunc(keyboard);

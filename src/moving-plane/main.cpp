@@ -3,6 +3,14 @@
 
 #include "Point.h"
 using namespace std;
+const unsigned int FRAMES_PER_SECOND = 30;
+const unsigned int UPDATE_INTERVAL_MS = 1000 / FRAMES_PER_SECOND;
+
+// Control when was the last update() called.
+int gTimeLastUpdateMs = 0;
+
+
+double x[4] = {0, 1, 4, 5}, y[4] = {1, 4, 4, 2}, z[4] = {0, 1, 3, 2};
 
 // global variables
 static struct {
@@ -43,6 +51,7 @@ static void drawFloor(void)
 	glEnd();
 }
 
+double xi, yi, zi;
 // function called by GLUT whenever a redraw is needed
 static void display()
 {
@@ -65,9 +74,71 @@ static void display()
 	gluLookAt(p.x(), p.y(), p.z(), c.x(), c.y(), c.z(), 0, 0, 1);
 
 	drawFloor();
-
+	//glLoadIdentity();
+	glPointSize(5);
+	glColor3f(1,1,0);
+	glBegin(GL_POINTS);
+		glVertex3d(x[0], y[0], z[0]);
+		glVertex3d(x[1], y[1], z[1]);
+		glVertex3d(x[2], y[2], z[2]);
+		glVertex3d(x[3], y[3], z[3]);
+	glEnd();
+	glPointSize(2);
+	glColor3f(1,1,1);
+	glBegin(GL_POINTS);
+		double Xi, Yi, Zi;
+		for(int i = 0; i < 5; i += 1){
+			for (double t = 0; t <= 1; t += 0.01){
+				Xi = pow(1 - t, 3)*x[0] + 3*t*pow(1 - t, 2)*x[1] + 3*pow(t, 2)*(1 - t)*x[2] + pow(t, 3)*x[3];
+				Yi = pow(1 - t, 3)*y[0] + 3*t*pow(1 - t, 2)*y[1] + 3*pow(t, 2)*(1 - t)*y[2] + pow(t, 3)*y[3];
+				Zi = pow(1 - t, 3)*z[0] + 3*t*pow(1 - t, 2)*z[1] + 3*pow(t, 2)*(1 - t)*z[2] + pow(t, 3)*z[3];
+				glVertex3d(Xi, Yi, Zi);
+			}
+		}
+	glEnd();
+	glPushMatrix();
+		glTranslated(xi, yi, zi);
+		glutSolidSphere(0.1, 10, 10);
+	glPopMatrix();
 	// make sure everything gets drawn
 	glFlush();
+}
+
+void internalDisplay(){
+
+	//glClearColor(1, 1, 1, 0);
+	glClear(GL_COLOR_BUFFER_BIT);
+
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
+
+	display();
+
+	glutSwapBuffers();
+}
+
+double b = 0.0;
+void internalUpdate(int value)
+{
+	int timeNowMs = glutGet(GLUT_ELAPSED_TIME);
+	double deltaSeconds = (timeNowMs - gTimeLastUpdateMs) / 1000.0;
+
+	gTimeLastUpdateMs = timeNowMs;
+
+	
+	if(b <= 1){
+		b += 0.01;
+		xi = pow(1 - b, 3)*x[0] + 3*b*pow(1 - b, 2)*x[1] + 3*pow(b, 2)*(1 - b)*x[2] + pow(b, 3)*x[3];
+		yi = pow(1 - b, 3)*y[0] + 3*b*pow(1 - b, 2)*y[1] + 3*pow(b, 2)*(1 - b)*y[2] + pow(b, 3)*y[3];
+		zi = pow(1 - b, 3)*z[0] + 3*b*pow(1 - b, 2)*z[1] + 3*pow(b, 2)*(1 - b)*z[2] + pow(b, 3)*z[3];
+	}else { b = 0; }
+
+	// Request a new frame rendering
+	glutPostRedisplay();
+
+	// Re-schedule the update() function to be called after a few
+	// milliseconds again.
+	glutTimerFunc(UPDATE_INTERVAL_MS, internalUpdate, 0);
 }
 
 // we recompute projection matrix on every resize, and reset the viewport
@@ -141,7 +212,8 @@ static void init(){
 	glutCreateWindow("MD2 Viewer");
 
 	// register callbacks
-	glutDisplayFunc(display);
+	glutDisplayFunc(internalDisplay);
+	//glutIdleFunc(display);
 	glutReshapeFunc(resizeCB);
 	glutMouseFunc(mouseClickCB);
 	glutMotionFunc(mouseMotionCB);
@@ -181,6 +253,7 @@ static void init(){
 	// since we are going to use scaling, and possibly non-uniform, we'll
 	// ask OpenGL to re-normalize our normals
 	glEnable(GL_NORMALIZE);
+	glutTimerFunc(UPDATE_INTERVAL_MS, internalUpdate, 0);
 }
 
 // main function
